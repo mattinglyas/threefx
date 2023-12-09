@@ -1,0 +1,20 @@
+{
+    "name": "ThreeFX",
+    "version": "0.0.1",
+    "description": "ThreeFX is a simple library for 3D perspective drawing using fixed-point math using Arduino_GFX",
+    "keywords": "drawing, 3D",
+    "repository":
+    {
+        "type": "git",
+        "url": "git@github.com:mattinglyas/threefx.git"
+    },
+    "authors":
+    [
+        {
+            "name": "Alex Mattingly",
+            "email": "mattinglyas@stny.rr.com",
+            "url": "https://www.github.com/mattinglyas"
+        }
+    ],
+    "license": "MIT"
+}

@@ -1,5 +1,5 @@
-#include "debug.h"
-#include "3d_fixed.hpp"
+#include <DebugLog.h>
+#include "3fx_fixed.hpp"
 #include <Arduino_GFX_Library.h>
 #include <libfixmath/fix16.hpp>
 
@@ -12,6 +12,11 @@ Point3d::Point3d()
     this->x = Fix16();
     this->y = Fix16();
     this->z = Fix16();
+}
+
+double function(const double& x)
+{
+    return 0.;
 }
 
 /**
@@ -96,16 +101,16 @@ Point3d::Point3d(int16_t x, int16_t y, int16_t z)
 void Point3d::debugPrint() const
 {
     char buf[13];
-    debug_print("(");
+    PRINT("(");
     fix16_to_str(this->x, buf, 4);
-    debug_print(buf);
-    debug_print(", ");
+    PRINT(buf);
+    PRINT(", ");
     fix16_to_str(this->y, buf, 4);
-    debug_print(buf);
-    debug_print(", ");
+    PRINT(buf);
+    PRINT(", ");
     fix16_to_str(this->z, buf, 4);
-    debug_print(buf);
-    debug_print(")");
+    PRINT(buf);
+    PRINT(")");
 }
 
 /**
@@ -192,13 +197,13 @@ Point2d::Point2d(int16_t x, int16_t y)
 void Point2d::debugPrint() const
 {
     char buf[13];
-    debug_print("(");
+    PRINT("(");
     fix16_to_str(this->x, buf, 4);
-    debug_print(buf);
-    debug_print(", ");
+    PRINT(buf);
+    PRINT(", ");
     fix16_to_str(this->y, buf, 4);
-    debug_print(buf);
-    debug_print(")");
+    PRINT(buf);
+    PRINT(")");
 }
 
 /**
@@ -261,7 +266,7 @@ Line3d::Line3d(const Point3d &p1, const Point3d &p2)
 void Line3d::debugPrint()
 {
     this->p1.debugPrint();
-    debug_print(" ,");
+    PRINT(" ,");
     this->p2.debugPrint();
 }
 
@@ -294,10 +299,10 @@ Line2d::Line2d(const Point2d &p1, const Point2d &p2)
 }
 
 /**
- * @brief Construct a new ThreeFX::ThreeFX object
+ * @brief Construct a new ThreeFX_Fixed::ThreeFX_Fixed object
  *
  */
-ThreeFX::ThreeFX()
+ThreeFX_Fixed::ThreeFX_Fixed()
 {
     this->setGFX(NULL);
     this->setZNear(THREEFX_Z_NEAR_DEFAULT);
@@ -307,11 +312,11 @@ ThreeFX::ThreeFX()
 }
 
 /**
- * @brief Construct a new ThreeFX::ThreeFX object
+ * @brief Construct a new ThreeFX_Fixed::ThreeFX_Fixed object
  *
  * @param gfx pointer to attached gfx object
  */
-ThreeFX::ThreeFX(Arduino_GFX *gfx)
+ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx)
 {
     this->setGFX(gfx);
     this->setZNear(THREEFX_Z_NEAR_DEFAULT);
@@ -320,14 +325,14 @@ ThreeFX::ThreeFX(Arduino_GFX *gfx)
 }
 
 /**
- * @brief Construct a new ThreeFX::ThreeFX object
+ * @brief Construct a new ThreeFX_Fixed::ThreeFX_Fixed object
  *
  * @param gfx pointer to attached gfx object
  * @param fov camera field of view
  * @param z_near z_near coordinate
  * @param z_far z_far coordinate
  */
-ThreeFX::ThreeFX(Arduino_GFX *gfx, double fov, double z_near, double z_far)
+ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx, double fov, double z_near, double z_far)
 {
     this->setGFX(gfx);
     this->setZNear(z_near);
@@ -336,14 +341,14 @@ ThreeFX::ThreeFX(Arduino_GFX *gfx, double fov, double z_near, double z_far)
 }
 
 /**
- * @brief Construct a new ThreeFX::ThreeFX object
+ * @brief Construct a new ThreeFX_Fixed::ThreeFX_Fixed object
  *
  * @param gfx point to attached gfx object
  * @param fov camera field of view
  * @param z_near z_near coordinate
  * @param z_far z_far coordinate
  */
-ThreeFX::ThreeFX(Arduino_GFX *gfx, double fov, const Fix16 &z_near, const Fix16 &z_far)
+ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx, double fov, const Fix16 &z_near, const Fix16 &z_far)
 {
     this->setGFX(gfx);
     this->setZNear(z_near);
@@ -356,22 +361,16 @@ ThreeFX::ThreeFX(Arduino_GFX *gfx, double fov, const Fix16 &z_near, const Fix16 
  *
  * @param z_near
  */
-void ThreeFX::setZNear(double z_near) { this->setZNear(Fix16(z_near)); }
+void ThreeFX_Fixed::setZNear(double z_near) { this->setZNear(Fix16(z_near)); }
 
 /**
  * @brief Setter for z_near
  *
  * @param z_near
  */
-void ThreeFX::setZNear(Fix16 z_near)
+void ThreeFX_Fixed::setZNear(Fix16 z_near)
 {
     this->z_near = z_near;
-
-    char buf[13];
-    fix16_to_str(this->z_near.value, buf, 4);
-    debug_print("ThreeFX set z_near to ");
-    debug_println(buf);
-
     this->updateLambda();
 }
 
@@ -380,22 +379,16 @@ void ThreeFX::setZNear(Fix16 z_near)
  *
  * @param z_far
  */
-void ThreeFX::setZFar(double z_far) { this->setZFar(Fix16(z_far)); }
+void ThreeFX_Fixed::setZFar(double z_far) { this->setZFar(Fix16(z_far)); }
 
 /**
  * @brief Setter for z_far
  *
  * @param z_far
  */
-void ThreeFX::setZFar(Fix16 z_far)
+void ThreeFX_Fixed::setZFar(Fix16 z_far)
 {
     this->z_far = z_far;    
-    
-    char buf[13];
-    fix16_to_str(this->z_far.value, buf, 4);
-    debug_print("ThreeFX set z_far to ");
-    debug_println(buf);
-    
     this->updateLambda();
 }
 
@@ -404,7 +397,7 @@ void ThreeFX::setZFar(Fix16 z_far)
  *
  * @param gfx
  */
-void ThreeFX::setGFX(Arduino_GFX *gfx)
+void ThreeFX_Fixed::setGFX(Arduino_GFX *gfx)
 {
     this->gfx = gfx;
     this->gfx_width = Fix16(this->gfx->width());
@@ -417,20 +410,11 @@ void ThreeFX::setGFX(Arduino_GFX *gfx)
  *
  * @param f fov angle in radians
  */
-void ThreeFX::setFovAngle(double f)
+void ThreeFX_Fixed::setFovAngle(double f)
 {
     this->fov_angle = f;
     this->fov = Fix16(1.) / (this->fov_angle / 2.).tan();
-
-    char buf[16];
-    fix16_to_str(this->fov_angle.value, buf, 4);
-    debug_print("ThreeFX update fov angle to ");
-    debug_println(buf);
-    fix16_to_str(this->fov.value, buf, 4);
-    debug_print("ThreeFX update fov value to ");
-    debug_println(buf);
 }
-
 /**
  * @brief Converts a world coordinate to a screen coordinate normalized within
  * the bounds of the screen box
@@ -438,7 +422,7 @@ void ThreeFX::setFovAngle(double f)
  * @param p point to convert
  * @return Point3d point in screen coordinates
  */
-inline Point3d ThreeFX::worldToScreen(const Point3d &p)
+inline Point3d ThreeFX_Fixed::worldToScreen(const Point3d &p)
 {
     Point3d res = Point3d();
 
@@ -450,11 +434,6 @@ inline Point3d ThreeFX::worldToScreen(const Point3d &p)
     res.y = this->fov * p.y * inv_z;
     res.z = (p.z - this->z_near) * lambda * inv_z;
 
-    debug_print("world ");
-    p.debugPrint();
-    debug_print(" to screen ");
-    res.debugPrint();
-    debug_print("; ");
     return res;
 }
 
@@ -465,18 +444,12 @@ inline Point3d ThreeFX::worldToScreen(const Point3d &p)
  * @param p Point3d to convert
  * @return Point2d in screen coordinates
  */
-inline Point2d ThreeFX::screenToPixel(const Point3d &p)
+inline Point2d ThreeFX_Fixed::screenToPixel(const Point3d &p)
 {
     Point2d res;
     Fix16 half = 1. / 2.;
     res.x = (p.x + half) * this->gfx_width;
     res.y = (half - p.y) * this->gfx_height;
-
-    debug_print("screen ");
-    p.debugPrint();
-    debug_print(" to pixel ");
-    res.debugPrint();
-    debug_print("; ");
     return res;
 }
 
@@ -486,10 +459,9 @@ inline Point2d ThreeFX::screenToPixel(const Point3d &p)
  * @param p Point3d point
  * @return Point2d screen point
  */
-inline Point2d ThreeFX::worldToPixel(const Point3d &p)
+inline Point2d ThreeFX_Fixed::worldToPixel(const Point3d &p)
 {
     Point2d p2 = this->screenToPixel(this->worldToScreen(p));
-    debug_println();
     return p2;
 }
 
@@ -500,7 +472,7 @@ inline Point2d ThreeFX::worldToPixel(const Point3d &p)
  * @param color 6-bit color
  * @return bool of if coordinate was on screen
  */
-bool ThreeFX::drawPoint3d(const Point3d &p, const uint16_t color)
+bool ThreeFX_Fixed::drawPoint3d(const Point3d &p, const uint16_t color)
 {
     Point2d p1 = worldToPixel(p);
 
@@ -525,21 +497,15 @@ bool ThreeFX::drawPoint3d(const Point3d &p, const uint16_t color)
  * @param color 6-bit color
  * @return bool, true if line was drawn on screen
  */
-bool ThreeFX::drawLine3d(const Line3d &wl, const uint16_t color)
+bool ThreeFX_Fixed::drawLine3d(const Line3d &wl, const uint16_t color)
 {
     Point2d p1 = this->worldToPixel(wl.p1);
     Point2d p2 = this->worldToPixel(wl.p2);
 
     bool val = this->cohenSutherlandClip(p1, p2);
 
-    debug_print("Sutherland Clip to pixel ");
-    p1.debugPrint();
-    debug_print(", ");
-    p2.debugPrint();
-
     if (val)
     {
-        debug_print(" (drawing)...");
         this->gfx->drawLine(
             int16_t(p1.x),
             int16_t(p1.y),
@@ -547,13 +513,10 @@ bool ThreeFX::drawLine3d(const Line3d &wl, const uint16_t color)
             int16_t(p2.y),
             color);
     }
-
-    debug_println();
-
     return val;
 }
 
-bool ThreeFX::cohenSutherlandClip(Point2d &p0, Point2d &p1)
+bool ThreeFX_Fixed::cohenSutherlandClip(Point2d &p0, Point2d &p1)
 {
     unsigned char code0 = this->cohenSutherlandCode(p0);
     unsigned char code1 = this->cohenSutherlandCode(p1);
@@ -625,21 +588,20 @@ bool ThreeFX::cohenSutherlandClip(Point2d &p0, Point2d &p1)
  * @brief Recalculates lambda value; called on any change to z_near, z_far
  *
  */
-void ThreeFX::updateLambda()
+void ThreeFX_Fixed::updateLambda()
 {
     this->lambda = this->z_far / (this->z_far - this->z_near);
 
     char buf[16];
     fix16_to_str(this->lambda.value, buf, 4);
-    debug_print("ThreeFX update lambda to ");
-    debug_println(buf);
+    LOG_DEBUG("update lambda to", buf);
 }
 
 /**
  * @brief Recalculates aspect ratio; called on any change to gfx
  *
  */
-void ThreeFX::updateAspect()
+void ThreeFX_Fixed::updateAspect()
 {
     double height = this->gfx->height();
     double width = this->gfx->width();
@@ -647,11 +609,10 @@ void ThreeFX::updateAspect()
 
     char buf[16];
     fix16_to_str(this->a, buf, 4);
-    debug_print("ThreeFX update aspect to ");
-    debug_println(buf);
+    LOG_DEBUG("update aspect to", buf);
 }
 
-inline unsigned char ThreeFX::cohenSutherlandCode(const Point2d &p)
+inline unsigned char ThreeFX_Fixed::cohenSutherlandCode(const Point2d &p)
 {
     unsigned char code = CL_INSIDE;
 

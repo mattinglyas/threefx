@@ -1,7 +1,7 @@
 #include <Arduino.h>
+#include <DebugLog.h>
 #include <Arduino_GFX_Library.h>
-#include "debug.h"
-#include "3d_fixed.hpp"
+#include "3fx_fixed.hpp"
 
 #define TFT_CS 5    // GPIO5
 #define TFT_RESET 3 // GPIO3
@@ -12,17 +12,17 @@
 #define TFT_MISO -1 // not used for TFT
 
 #define GFX_BL TFT_LED // backlight pin
-#define DRAW_REFRESH_MS 500
+#define DRAW_REFRESH_MS 50
 
 // parameters for generating perspective grid
 #define Z_PLANE_COLOR CYAN
 #define NUM_Z_PLANE_VERT (17)
 #define NUM_Z_PLANE_HORIZ (9)
-#define XS_MIN (Fix16(-7.))
-#define XS_MAX (Fix16(7.))
+#define XS_MIN (Fix16(-14.))
+#define XS_MAX (Fix16(14.))
 #define ZS_MIN (Fix16(6.))
 #define ZS_MAX (Fix16(14.))
-#define Y_HEIGHT (Fix16(-2.5))
+#define Y_HEIGHT (Fix16(-3.))
 
 // camera parameters
 #define Z_NEAR (Fix16(3.))
@@ -33,10 +33,10 @@
 Line3d z_grid_horiz[NUM_Z_PLANE_HORIZ];
 Line3d z_grid_vert[NUM_Z_PLANE_VERT];
 
-// ThreeFX object
+// ThreeFX_Fixed object
 Arduino_DataBus *bus; 
 Arduino_GFX *gfx;
-ThreeFX *tfx;
+ThreeFX_Fixed *tfx;
 
 // init grid by linspace
 void initGridWorldCoordinates()
@@ -128,31 +128,36 @@ void drawZPlaneHoriz(int16_t color)
 
 void setup()
 {
-    // put your setup code here, to run once:
-    if (DEBUG)
-    {
-        Serial.begin(115200);
-        vTaskDelay(2500);
-    }
-    debug_println("Set up gfx...")
+
+    Serial.begin(115200);
+    vTaskDelay(2500);
+    LOG_ATTACH_SERIAL(Serial);
+
+    LOG_INFO("Set up gfx...");
     bus = new Arduino_HWSPI(TFT_DC, TFT_CS);
     gfx = new Arduino_ILI9488_18bit(bus, TFT_RESET, 1, false);
     gfx->begin();
+    LOG_INFO("done");
 
-    debug_println("Wipe screen...");
+    LOG_INFO("Wipe screen...");
     // light up display and wipe screen
     pinMode(GFX_BL, OUTPUT);
     digitalWrite(GFX_BL, HIGH);
     gfx->fillScreen(BLACK);
+    LOG_INFO("done");
 
-    debug_println("Init ThreeFX...");
-    tfx = new ThreeFX(gfx, FOV_RAD, Z_NEAR, Z_FAR);
+    LOG_INFO("Init ThreeFX_Fixed...");
+    tfx = new ThreeFX_Fixed(gfx, FOV_RAD, Z_NEAR, Z_FAR);
+    LOG_INFO("done");
 }
 
 void loop()
 {
     TickType_t x_last_wake_time;
     const TickType_t x_period pdMS_TO_TICKS(DRAW_REFRESH_MS);
+
+    int16_t angle = 0;
+    Fix16 speed(0.1);
 
     x_last_wake_time = xTaskGetTickCount();
 
@@ -166,13 +171,17 @@ void loop()
     {
         // wait for next frame
         vTaskDelayUntil(&x_last_wake_time, x_period);
-        debug_print(millis());
-        debug_println(" frame");
         
+        Fix16 rads = Fix16(angle) * Fix16(2. * PI * 1. / 360.);
+        Fix16 dx, dy;
+        dx = rads.sin() * speed;
+        dy = rads.cos() * speed;
+        angle = (angle + 1) % 360;
+
         // update grid
         drawZPlaneVert(BLACK);
         drawZPlaneHoriz(BLACK);
-        updateGridWorldCoordinates(Fix16(-0.1), Fix16(-0.2));
+        updateGridWorldCoordinates(dx, dy);
         drawZPlaneVert(Z_PLANE_COLOR);
         drawZPlaneHoriz(Z_PLANE_COLOR);
     }
