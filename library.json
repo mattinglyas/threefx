@@ -16,5 +16,23 @@
             "url": "https://www.github.com/mattinglyas"
         }
     ],
-    "license": "MIT"
+    "license": "MIT",
+    "dependencies":
+    [
+        {   
+            "owner": "moononournation",
+            "name": "GFX Library for Arduino",
+            "verision": "^1.3.6"
+        },
+        {
+            "owner": "petteriaimonen",
+            "name": "libfixmath",
+            "version": "0.0.0-alpha+sha.66365d5888"
+        },
+        {
+            "owner": "hideakitai",
+            "name": "DebugLog",
+            "version": "^0.7.0"
+        }
+    ]
 }
