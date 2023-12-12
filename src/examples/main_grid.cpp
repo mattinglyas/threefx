@@ -20,9 +20,9 @@
 #define NUM_Z_PLANE_HORIZ (9)
 #define XS_MIN (Fix16(-14.))
 #define XS_MAX (Fix16(14.))
-#define ZS_MIN (Fix16(6.))
-#define ZS_MAX (Fix16(14.))
-#define Y_HEIGHT (Fix16(-3.))
+#define ZS_MIN (Fix16(3.))
+#define ZS_MAX (Fix16(12.))
+#define Y_HEIGHT (Fix16(0.))
 
 // camera parameters
 #define Z_NEAR (Fix16(3.))
@@ -46,26 +46,26 @@ void initGridWorldCoordinates()
     delta = (ZS_MAX - ZS_MIN) / int16_t{NUM_Z_PLANE_HORIZ - 1};
     for (int i = 0; i < NUM_Z_PLANE_HORIZ; i++)
     {
-        z_grid_horiz[i].p1.x = XS_MIN;
+        z_grid_horiz[i].p0.x = XS_MIN;
+        z_grid_horiz[i].p0.y = Y_HEIGHT;
+        z_grid_horiz[i].p0.z = (ZS_MIN + delta * i);
+
+        z_grid_horiz[i].p1.x = XS_MAX;
         z_grid_horiz[i].p1.y = Y_HEIGHT;
         z_grid_horiz[i].p1.z = (ZS_MIN + delta * i);
-
-        z_grid_horiz[i].p2.x = XS_MAX;
-        z_grid_horiz[i].p2.y = Y_HEIGHT;
-        z_grid_horiz[i].p2.z = (ZS_MIN + delta * i);
     }
 
     // vertical
     delta = (XS_MAX - XS_MIN) / int16_t{NUM_Z_PLANE_VERT - 1};
     for (int i = 0; i < NUM_Z_PLANE_VERT; i++)
     {
+        z_grid_vert[i].p0.x = (XS_MIN + delta * i);
+        z_grid_vert[i].p0.y = Y_HEIGHT;
+        z_grid_vert[i].p0.z = ZS_MIN;
+
         z_grid_vert[i].p1.x = (XS_MIN + delta * i);
         z_grid_vert[i].p1.y = Y_HEIGHT;
-        z_grid_vert[i].p1.z = ZS_MIN;
-
-        z_grid_vert[i].p2.x = (XS_MIN + delta * i);
-        z_grid_vert[i].p2.y = Y_HEIGHT;
-        z_grid_vert[i].p2.z = ZS_MAX;
+        z_grid_vert[i].p1.z = ZS_MAX;
     }
 }
 
@@ -76,7 +76,7 @@ void updateGridWorldCoordinates(const Fix16 &dx, const Fix16 &dz)
     Fix16 temp = Fix16();
     for (int i = 0; i < NUM_Z_PLANE_HORIZ; i++)
     {
-        temp = z_grid_horiz[i].p1.z + dz;
+        temp = z_grid_horiz[i].p0.z + dz;
 
         if (temp > ZS_MAX)
         {
@@ -87,14 +87,14 @@ void updateGridWorldCoordinates(const Fix16 &dx, const Fix16 &dz)
             temp += (ZS_MAX - ZS_MIN);
         }
 
+        z_grid_horiz[i].p0.z = temp;
         z_grid_horiz[i].p1.z = temp;
-        z_grid_horiz[i].p2.z = temp;
     }
 
     // vertical
     for (int i = 0; i < NUM_Z_PLANE_VERT; i++)
     {
-        temp = z_grid_vert[i].p1.x + dx;
+        temp = z_grid_vert[i].p0.x + dx;
 
         if (temp > XS_MAX)
         {
@@ -105,8 +105,8 @@ void updateGridWorldCoordinates(const Fix16 &dx, const Fix16 &dz)
             temp += (XS_MAX - XS_MIN);
         }
 
+        z_grid_vert[i].p0.x = temp;
         z_grid_vert[i].p1.x = temp;
-        z_grid_vert[i].p2.x = temp;
     }
 }
 
@@ -128,7 +128,6 @@ void drawZPlaneHoriz(int16_t color)
 
 void setup()
 {
-
     Serial.begin(115200);
     vTaskDelay(2500);
     LOG_ATTACH_SERIAL(Serial);
@@ -147,7 +146,10 @@ void setup()
     LOG_INFO("done");
 
     LOG_INFO("Init ThreeFX_Fixed...");
+    vTaskDelay(1000);
     tfx = new ThreeFX_Fixed(gfx, FOV_RAD, Z_NEAR, Z_FAR);
+    tfx->setCameraAngle(Fix16(0.), Fix16(0.), Fix16(0.));
+    tfx->setCameraOrigin(Point3d(0., 2., 0.));
     LOG_INFO("done");
 }
 

@@ -14,7 +14,7 @@ Point3d::Point3d()
     this->z = Fix16();
 }
 
-double function(const double& x)
+double function(const double &x)
 {
     return 0.;
 }
@@ -92,6 +92,68 @@ Point3d::Point3d(int16_t x, int16_t y, int16_t z)
     this->x = Fix16(x);
     this->y = Fix16(y);
     this->z = Fix16(z);
+}
+
+/**
+ * @brief Relative adder operator for point3d
+ *
+ * @param rhs
+ * @return Point3d&
+ */
+Point3d &Point3d::operator+=(const Point3d &rhs)
+{
+    this->x += rhs.x;
+    this->y += rhs.y;
+    this->z += rhs.z;
+
+    return *this;
+}
+
+/**
+ * @brief Adder operator for point3d; adds per coordinate
+ *
+ * @param rhs
+ * @return Point3d&
+ */
+const Point3d Point3d::operator+(const Point3d &rhs)
+{
+    Point3d ret = *this;
+    ret.x += rhs.x;
+    ret.y += rhs.y;
+    ret.z += rhs.z;
+
+    return ret;
+}
+
+/**
+ * @brief Relative subtractor operator for point3d
+ *
+ * @param rhs
+ * @return Point3d&
+ */
+Point3d &Point3d::operator-=(const Point3d &rhs)
+{
+    this->x -= rhs.x;
+    this->y -= rhs.y;
+    this->z -= rhs.z;
+
+    return *this;
+}
+
+/**
+ * @brief Subtractor operator for point3d; subtracts per coordinate
+ *
+ * @param rhs
+ * @return Point3d&
+ */
+const Point3d Point3d::operator-(const Point3d &rhs)
+{
+    Point3d ret = *this;
+    ret.x -= rhs.x;
+    ret.y -= rhs.y;
+    ret.z -= rhs.z;
+
+    return ret;
 }
 
 /**
@@ -212,8 +274,8 @@ void Point2d::debugPrint() const
  */
 Line3d::Line3d()
 {
+    this->p0 = Point3d();
     this->p1 = Point3d();
-    this->p2 = Point3d();
 }
 
 /**
@@ -223,8 +285,8 @@ Line3d::Line3d()
  */
 Line3d::Line3d(const Line3d &l)
 {
+    this->p0 = l.p0;
     this->p1 = l.p1;
-    this->p2 = l.p2;
 }
 
 /**
@@ -235,8 +297,8 @@ Line3d::Line3d(const Line3d &l)
  */
 const Line3d &Line3d::operator=(const Line3d &l)
 {
+    this->p0 = l.p0;
     this->p1 = l.p1;
-    this->p2 = l.p2;
 
     return l;
 }
@@ -253,10 +315,10 @@ Line3d::~Line3d() {}
  * @param p1 Point3d point 1
  * @param p2 Point3d point 2
  */
-Line3d::Line3d(const Point3d &p1, const Point3d &p2)
+Line3d::Line3d(const Point3d &p0, const Point3d &p1)
 {
+    this->p0 = p0;
     this->p1 = p1;
-    this->p2 = p2;
 }
 
 /**
@@ -265,37 +327,37 @@ Line3d::Line3d(const Point3d &p1, const Point3d &p2)
  */
 void Line3d::debugPrint()
 {
-    this->p1.debugPrint();
+    this->p0.debugPrint();
     PRINT(" ,");
-    this->p2.debugPrint();
+    this->p1.debugPrint();
 }
 
 Line2d::Line2d()
 {
+    this->p0 = Point2d();
     this->p1 = Point2d();
-    this->p2 = Point2d();
 }
 
 Line2d::Line2d(const Line2d &l)
 {
+    this->p0 = l.p0;
     this->p1 = l.p1;
-    this->p2 = l.p2;
 }
 
 const Line2d &Line2d::operator=(const Line2d &l)
 {
+    this->p0 = l.p0;
     this->p1 = l.p1;
-    this->p2 = l.p2;
 
     return l;
 }
 
 Line2d::~Line2d() {}
 
-Line2d::Line2d(const Point2d &p1, const Point2d &p2)
+Line2d::Line2d(const Point2d &p0, const Point2d &p1)
 {
+    this->p0 = p0;
     this->p1 = p1;
-    this->p2 = p2;
 }
 
 /**
@@ -309,6 +371,10 @@ ThreeFX_Fixed::ThreeFX_Fixed()
     this->setZFar(THREEFX_Z_FAR_DEFAULT);
     this->setFovAngle(THREEFX_FOV_DEFAULT);
     this->updateLambda();
+
+    this->yaw = this->roll = this->pitch = Fix16(0.);
+    this->cam_origin = Point3d(0., 0., 0.);
+    this->updateCamTransform();
 }
 
 /**
@@ -319,9 +385,6 @@ ThreeFX_Fixed::ThreeFX_Fixed()
 ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx)
 {
     this->setGFX(gfx);
-    this->setZNear(THREEFX_Z_NEAR_DEFAULT);
-    this->setZFar(THREEFX_Z_FAR_DEFAULT);
-    this->setFovAngle(THREEFX_FOV_DEFAULT);
 }
 
 /**
@@ -332,9 +395,8 @@ ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx)
  * @param z_near z_near coordinate
  * @param z_far z_far coordinate
  */
-ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx, double fov, double z_near, double z_far)
+ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx, double fov, double z_near, double z_far) : ThreeFX_Fixed(gfx)
 {
-    this->setGFX(gfx);
     this->setZNear(z_near);
     this->setZFar(z_far);
     this->setFovAngle(fov);
@@ -348,7 +410,7 @@ ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx, double fov, double z_near, double
  * @param z_near z_near coordinate
  * @param z_far z_far coordinate
  */
-ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx, double fov, const Fix16 &z_near, const Fix16 &z_far)
+ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx, double fov, const Fix16 &z_near, const Fix16 &z_far) : ThreeFX_Fixed(gfx)
 {
     this->setGFX(gfx);
     this->setZNear(z_near);
@@ -368,7 +430,7 @@ void ThreeFX_Fixed::setZNear(double z_near) { this->setZNear(Fix16(z_near)); }
  *
  * @param z_near
  */
-void ThreeFX_Fixed::setZNear(Fix16 z_near)
+void ThreeFX_Fixed::setZNear(const Fix16 &z_near)
 {
     this->z_near = z_near;
     this->updateLambda();
@@ -386,9 +448,9 @@ void ThreeFX_Fixed::setZFar(double z_far) { this->setZFar(Fix16(z_far)); }
  *
  * @param z_far
  */
-void ThreeFX_Fixed::setZFar(Fix16 z_far)
+void ThreeFX_Fixed::setZFar(const Fix16 &z_far)
 {
-    this->z_far = z_far;    
+    this->z_far = z_far;
     this->updateLambda();
 }
 
@@ -400,9 +462,15 @@ void ThreeFX_Fixed::setZFar(Fix16 z_far)
 void ThreeFX_Fixed::setGFX(Arduino_GFX *gfx)
 {
     this->gfx = gfx;
-    this->gfx_width = Fix16(this->gfx->width());
-    this->gfx_height = Fix16(this->gfx->height());
-    this->updateAspect();
+
+    if (this->gfx)
+    {
+        this->gfx_width = Fix16(this->gfx->width());
+        this->gfx_height = Fix16(this->gfx->height());
+        this->updateAspect();
+
+        LOG_DEBUG("attached GFX");
+    }
 }
 
 /**
@@ -415,42 +483,31 @@ void ThreeFX_Fixed::setFovAngle(double f)
     this->fov_angle = f;
     this->fov = Fix16(1.) / (this->fov_angle / 2.).tan();
 }
+
 /**
- * @brief Converts a world coordinate to a screen coordinate normalized within
- * the bounds of the screen box
+ * @brief Sets camera angle
  *
- * @param p point to convert
- * @return Point3d point in screen coordinates
+ * @param yaw
+ * @param pitch
+ * @param roll
  */
-inline Point3d ThreeFX_Fixed::worldToScreen(const Point3d &p)
+void ThreeFX_Fixed::setCameraAngle(const Fix16 &yaw, const Fix16 &pitch, const Fix16 &roll)
 {
-    Point3d res = Point3d();
+    this->yaw = yaw;
+    this->pitch = pitch;
+    this->roll = roll;
 
-    // need to do one int divide to get 1 / dz
-    Fix16 inv_z = Fix16(1.) / p.z;
-
-    // then everything becomes int multiply
-    res.x = this->a * this->fov * p.x * inv_z;
-    res.y = this->fov * p.y * inv_z;
-    res.z = (p.z - this->z_near) * lambda * inv_z;
-
-    return res;
+    this->updateCamTransform();
 }
 
 /**
- * @brief Converts a screen point (normalized to [-1, 1] that are edges of
- * the screen) to actual pixels
+ * @brief Sets camera origin point
  *
- * @param p Point3d to convert
- * @return Point2d in screen coordinates
+ * @param pt
  */
-inline Point2d ThreeFX_Fixed::screenToPixel(const Point3d &p)
+void ThreeFX_Fixed::setCameraOrigin(const Point3d &pt)
 {
-    Point2d res;
-    Fix16 half = 1. / 2.;
-    res.x = (p.x + half) * this->gfx_width;
-    res.y = (half - p.y) * this->gfx_height;
-    return res;
+    this->cam_origin = pt;
 }
 
 /**
@@ -459,10 +516,40 @@ inline Point2d ThreeFX_Fixed::screenToPixel(const Point3d &p)
  * @param p Point3d point
  * @return Point2d screen point
  */
-inline Point2d ThreeFX_Fixed::worldToPixel(const Point3d &p)
+Point2d ThreeFX_Fixed::worldToPixel(const Point3d &p)
 {
     Point2d p2 = this->screenToPixel(this->worldToScreen(p));
     return p2;
+}
+
+/**
+ * @brief Get the Camera Yaw object
+ *
+ * @return Fix16
+ */
+Fix16 ThreeFX_Fixed::getCameraYaw()
+{
+    return this->yaw;
+}
+
+/**
+ * @brief Get the Camera pitch object
+ *
+ * @return Fix16
+ */
+Fix16 ThreeFX_Fixed::getCameraPitch()
+{
+    return this->pitch;
+}
+
+/**
+ * @brief Get the Camera roll object
+ *
+ * @return Fix16
+ */
+Fix16 ThreeFX_Fixed::getCameraRoll()
+{
+    return this->roll;
 }
 
 /**
@@ -499,27 +586,59 @@ bool ThreeFX_Fixed::drawPoint3d(const Point3d &p, const uint16_t color)
  */
 bool ThreeFX_Fixed::drawLine3d(const Line3d &wl, const uint16_t color)
 {
-    Point2d p1 = this->worldToPixel(wl.p1);
-    Point2d p2 = this->worldToPixel(wl.p2);
+    Point3d sp0 = this->worldToScreen(wl.p0);
+    Point3d sp1 = this->worldToScreen(wl.p1);
 
-    bool val = this->cohenSutherlandClip(p1, p2);
+    bool val = this->cohenSutherlandClip(sp0, sp1);
 
     if (val)
     {
+        Point2d p0 = this->screenToPixel(sp0);
+        Point2d p1 = this->screenToPixel(sp1);
         this->gfx->drawLine(
+            int16_t(p0.x),
+            int16_t(p0.y),
             int16_t(p1.x),
             int16_t(p1.y),
-            int16_t(p2.x),
-            int16_t(p2.y),
             color);
     }
+
     return val;
 }
 
+/**
+ * @brief Performs cohen-sutherland clipping on line formed by p0 and p1
+ * boxed into the screen size
+ *
+ * @param p0 point 0
+ * @param p1 point 1
+ * @return true if the line can be drawn
+ * @return false if the line cannot be drawn
+ */
 bool ThreeFX_Fixed::cohenSutherlandClip(Point2d &p0, Point2d &p1)
 {
-    unsigned char code0 = this->cohenSutherlandCode(p0);
-    unsigned char code1 = this->cohenSutherlandCode(p1);
+    return this->cohenSutherlandClip(
+        p0,
+        p1,
+        Point2d(0., 0.),
+        Point2d(this->gfx_width, this->gfx_height));
+}
+
+/**
+ * @brief Performs cohen-sutherland clipping on line formed by p0 and p1
+ * boxed into the screen size
+ *
+ * @param p0 point 0
+ * @param p1 point 1
+ * @param min window minimum coordinates
+ * @param max window maximum coordinates
+ * @return true if the line can be drawn
+ * @return false if the line cannot be drawn
+ */
+bool ThreeFX_Fixed::cohenSutherlandClip(Point2d &p0, Point2d &p1, const Point2d &min, const Point2d &max)
+{
+    unsigned char code0 = this->cohenSutherlandCode(p0, min, max);
+    unsigned char code1 = this->cohenSutherlandCode(p1, min, max);
 
     bool accept = false;
     while (true)
@@ -545,38 +664,142 @@ bool ThreeFX_Fixed::cohenSutherlandClip(Point2d &p0, Point2d &p1)
         // TODO is there a better way to get coordinates than integer division
         if (code_out & CL_TOP)
         {
-            p.x = p0.x + (p1.x - p0.x) * (Fix16(0.) - p0.y) / (p1.y - p0.y);
-            p.y = Fix16(0.);
+            p.x = p0.x + ((p1.x - p0.x) / (p1.y - p0.y)) * (min.y - p0.y);
+            p.y = min.y;
         }
         else if (code_out & CL_BOTTOM)
         {
-            p.x = p0.x + (p1.x - p0.x) * (this->gfx_height - p0.y) / (p1.y - p0.y);
-            p.y = this->gfx_height;
+            p.x = p0.x + ((p1.x - p0.x) / (p1.y - p0.y)) * (max.y - p0.y);
+            p.y = max.y;
         }
         else if (code_out & CL_RIGHT)
         {
-            p.x = this->gfx_width;
-            p.y = p0.y + (p1.y - p0.y) * (this->gfx_width - p0.x) / (p1.x - p0.x);
+            p.x = max.x;
+            p.y = p0.y + ((p1.y - p0.y) / (p1.x - p0.x)) * (max.x - p0.x);
         }
         else if (code_out & CL_LEFT)
         {
-            p.x = Fix16(0.);
-            p.y = p0.y + (p1.y - p0.y) * (Fix16(0.) - p0.x) / (p1.x - p0.x);
+            p.x = min.x;
+            p.y = p0.y + ((p1.y - p0.y) / (p1.x - p0.x)) * (min.x - p0.x);
         }
-        else 
+        else
         {
             // something must have gone wrong to get here...
         }
-        
+
         if (code_out == code0)
         {
             p0 = p;
-            code0 = this->cohenSutherlandCode(p0);
+            code0 = this->cohenSutherlandCode(p0, min, max);
         }
         else
         {
             p1 = p;
-            code1 = this->cohenSutherlandCode(p1);
+            code1 = this->cohenSutherlandCode(p1, min, max);
+        }
+    }
+
+    // this line can be drawn on screen if both segment codes are 0 (centered)
+    return ((code0 | code1) == CL_INSIDE);
+}
+
+/**
+ * @brief Performs cohen-sutherland clipping on line formed by p0 and p1
+ * boxed into the on-screen screen coordinates (NOT pixel coordinates)
+ *
+ * @param p0 point 0
+ * @param p1 point 1
+ * @return true if the line can be drawn
+ * @return false if the line cannot be drawn
+ */
+bool ThreeFX_Fixed::cohenSutherlandClip(Point3d &p0, Point3d &p1)
+{
+    return this->cohenSutherlandClip(
+        p0,
+        p1,
+        Point3d(-1., -1., 0.),
+        Point3d(1., 1., 1.));
+}
+
+bool ThreeFX_Fixed::cohenSutherlandClip(Point3d &p0, Point3d &p1, const Point3d &min, const Point3d& max)
+{
+    
+    unsigned char code0 = this->cohenSutherlandCode(p0, min, max);
+    unsigned char code1 = this->cohenSutherlandCode(p1, min, max);
+
+    bool accept = false;
+    while (true)
+    {
+        unsigned char code_out;
+        Point3d p = Point3d();
+
+        if ((code0 == 0) && (code1 == 0))
+            break;
+        if (code0 & code1)
+            break;
+
+        if (code0)
+        {
+            code_out = code0;
+        }
+        else
+        {
+            code_out = code1;
+        }
+
+        // find intersection point
+        // TODO is there a better way to get coordinates than integer division,
+        // look to see if compiler optimizes duplicated parameters like slope
+        if (code_out & CL_LEFT)
+        {
+            p.x = min.x;
+            p.y = p0.y + ((p1.y - p0.y) / (p1.x - p0.x)) * (min.x - p0.x);
+            p.z = p0.z + ((p1.z - p0.z) / (p1.x - p0.x)) * (min.x - p0.x);
+        }
+        else if (code_out & CL_RIGHT)
+        {
+            p.x = max.x;
+            p.y = p0.y + ((p1.y - p0.y) / (p1.x - p0.x)) * (max.x - p0.x);
+            p.z = p0.z + ((p1.z - p0.z) / (p1.x - p0.x)) * (max.x - p0.x);
+        }
+        else if (code_out & CL_TOP)
+        {
+            p.x = p0.x + ((p1.x - p0.x) / (p1.y - p0.y)) * (min.y - p0.y);
+            p.y = min.y;
+            p.z = p0.z + ((p1.z - p0.z) / (p1.y - p0.y)) * (min.y - p0.y);
+        }
+        else if (code_out & CL_BOTTOM)
+        {
+            p.x = p0.x + ((p1.x - p0.x) / (p1.y - p0.y)) * (max.y - p0.y);
+            p.y = max.y;
+            p.z = p0.z + ((p1.z - p0.z) / (p1.y - p0.y)) * (max.y - p0.y);
+        }
+        else if (code_out & CL_FRONT)
+        {
+            p.x = p0.x + ((p1.x - p0.x) / (p1.z - p0.z)) * (min.z - p0.z);
+            p.y = p0.y + ((p1.y - p0.y) / (p1.z - p0.z)) * (min.z - p0.z);
+            p.z = min.z;
+        } 
+        else if (code_out & CL_BACK)
+        {
+            p.x = p0.x + ((p1.x - p0.x) / (p1.z - p0.z)) * (max.z - p0.z);
+            p.y = p0.y + ((p1.y - p0.y) / (p1.z - p0.z)) * (max.z - p0.z);
+            p.z = max.z;
+        }
+        else
+        {
+            // something must have gone wrong to get here...
+        }
+
+        if (code_out == code0)
+        {
+            p0 = p;
+            code0 = this->cohenSutherlandCode(p0, min, max);
+        }
+        else
+        {
+            p1 = p;
+            code1 = this->cohenSutherlandCode(p1, min, max);
         }
     }
 
@@ -612,27 +835,145 @@ void ThreeFX_Fixed::updateAspect()
     LOG_DEBUG("update aspect to", buf);
 }
 
-inline unsigned char ThreeFX_Fixed::cohenSutherlandCode(const Point2d &p)
+/**
+ * @brief Re-calculates camera transform matrix based on stored yaw, pitch, roll
+ * (see https://msl.cs.uiuc.edu/planning/node102.html); matrix stored in [y][x]
+ *
+ */
+void ThreeFX_Fixed::updateCamTransform()
+{
+    this->cam_mtrx[0][0] = this->yaw.cos() * this->pitch.cos();
+    this->cam_mtrx[0][1] = this->yaw.cos() * this->pitch.sin() * this->roll.sin() - this->yaw.sin() * this->roll.cos();
+    this->cam_mtrx[0][1] = this->yaw.cos() * this->pitch.sin() * this->roll.cos() + this->yaw.sin() * this->roll.sin();
+    this->cam_mtrx[1][0] = this->yaw.sin() * this->pitch.cos();
+    this->cam_mtrx[1][1] = this->yaw.sin() * this->yaw.cos() * this->roll.sin() + this->yaw.cos() * this->roll.cos();
+    this->cam_mtrx[1][2] = this->yaw.sin() * this->pitch.sin() * this->roll.cos() - this->yaw.cos() * this->roll.sin();
+    this->cam_mtrx[2][0] = this->pitch.sin() * -1.;
+    this->cam_mtrx[2][1] = this->pitch.cos() * this->roll.sin();
+    this->cam_mtrx[2][2] = this->pitch.cos() * this->roll.cos();
+
+    LOG_DEBUG("update camera matrix: ");
+    LOG_DEBUG(this->cam_mtrx[0][0].value, this->cam_mtrx[0][1].value, this->cam_mtrx[0][2].value);
+    LOG_DEBUG(this->cam_mtrx[1][0].value, this->cam_mtrx[1][1].value, this->cam_mtrx[1][2].value);
+    LOG_DEBUG(this->cam_mtrx[2][0].value, this->cam_mtrx[2][1].value, this->cam_mtrx[2][2].value);
+}
+
+/**
+ * @brief Calculates Cohen-Sutherland code for a 2d point
+ *
+ * @param p 2d point
+ * @param min minimum bounding rectangle  
+ * @param max maximum bounding rectangle
+ * @return unsigned char
+ */
+unsigned char ThreeFX_Fixed::cohenSutherlandCode(const Point2d &p, const Point2d &min, const Point2d &max)
 {
     unsigned char code = CL_INSIDE;
 
-    if (p.x < Fix16(0.))
+    if (p.x < min.x)
     {
         code |= CL_LEFT;
     }
-    else if (p.x > this->gfx_width)
+    else if (p.x > max.x)
     {
         code |= CL_RIGHT;
     }
 
-    if (p.y < Fix16(0.))
+    if (p.y < min.y)
     {
         code |= CL_TOP;
     }
-    else if (p.y > this->gfx_height)
+    else if (p.y > max.y)
     {
         code |= CL_BOTTOM;
     }
 
     return code;
+}
+
+/**
+ * @brief Calculates Cohen-Sutherland code for a 2d point
+ *
+ * @param p
+ * @return unsigned char
+ */
+unsigned char ThreeFX_Fixed::cohenSutherlandCode(const Point3d &p, const Point3d &min, const Point3d &max)
+{
+    unsigned char code = CL_INSIDE;
+
+    if (p.x < min.x)
+        code |= CL_LEFT;
+    else if (p.x > max.x)
+        code |= CL_RIGHT;
+    
+    if (p.y < min.y)
+        code |= CL_TOP;
+    else if (p.y > max.y)
+        code |= CL_BOTTOM;
+    
+    if (p.z < min.z)
+        code |= CL_FRONT;
+    else if (p.z > max.z)
+        code |= CL_BACK;
+    
+    return code;
+}
+
+/**
+ * @brief Adjusts 3d point for camera angle and position
+ *
+ * @return Point3d
+ */
+Point3d ThreeFX_Fixed::worldCamera(const Point3d &p)
+{
+    Point3d p1 = p;
+
+    // subtract camera origin from point to place camera at origin
+    p1 -= this->cam_origin;
+
+    // apply rotation about origin
+    Point3d p2;
+    p2.x = p1.x * this->cam_mtrx[0][0] + p1.y * this->cam_mtrx[1][0] + p1.z * this->cam_mtrx[2][0];
+    p2.y = p1.x * this->cam_mtrx[0][1] + p1.y * this->cam_mtrx[1][1] + p1.z * this->cam_mtrx[2][1];
+    p2.z = p1.x * this->cam_mtrx[0][2] + p1.y * this->cam_mtrx[1][2] + p1.z * this->cam_mtrx[2][2];
+
+    return p2;
+}
+
+/**
+ * @brief Converts a world coordinate to a screen coordinate normalized within
+ * the bounds of the screen box
+ *
+ * @param p point to convert
+ * @return Point3d point in screen coordinates
+ */
+Point3d ThreeFX_Fixed::worldToScreen(const Point3d &p)
+{
+    Point3d p1, res;
+    p1 = this->worldCamera(p);
+
+    // need to do one int divide to get 1 / dz
+    Fix16 inv_z = Fix16(1.) / p.z;
+
+    // then everything becomes int multiply
+    res.x = this->a * this->fov * p1.x * inv_z;
+    res.y = this->fov * p1.y * inv_z;
+    res.z = (p1.z - this->z_near) * this->lambda * inv_z;
+
+    return res;
+}
+
+/**
+ * @brief Converts a screen point (normalized to [-1, 1] that are edges of
+ * the screen) to actual pixels
+ *
+ * @param p Point3d to convert
+ * @return Point2d in screen coordinates
+ */
+Point2d ThreeFX_Fixed::screenToPixel(const Point3d &p)
+{
+    Point2d res;
+    res.x = (p.x + Fix16(1.)) * this->gfx_width * Fix16(1. / 2.);
+    res.y = (Fix16(1.) - p.y) * this->gfx_height * Fix16(1. / 2.);
+    return res;
 }
