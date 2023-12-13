@@ -370,9 +370,9 @@ ThreeFX_Fixed::ThreeFX_Fixed()
     this->setZNear(THREEFX_Z_NEAR_DEFAULT);
     this->setZFar(THREEFX_Z_FAR_DEFAULT);
     this->setFovAngle(THREEFX_FOV_DEFAULT);
-    this->updateLambda();
+    this->updateLambdaScale();
 
-    this->yaw = this->roll = this->pitch = Fix16(0.);
+    this->alpha = this->gamma = this->beta = Fix16(0.);
     this->cam_origin = Point3d(0., 0., 0.);
     this->updateCamTransform();
 }
@@ -382,7 +382,7 @@ ThreeFX_Fixed::ThreeFX_Fixed()
  *
  * @param gfx pointer to attached gfx object
  */
-ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx)
+ThreeFX_Fixed::ThreeFX_Fixed(Arduino_GFX *gfx) : ThreeFX_Fixed()
 {
     this->setGFX(gfx);
 }
@@ -433,7 +433,7 @@ void ThreeFX_Fixed::setZNear(double z_near) { this->setZNear(Fix16(z_near)); }
 void ThreeFX_Fixed::setZNear(const Fix16 &z_near)
 {
     this->z_near = z_near;
-    this->updateLambda();
+    this->updateLambdaScale();
 }
 
 /**
@@ -451,7 +451,7 @@ void ThreeFX_Fixed::setZFar(double z_far) { this->setZFar(Fix16(z_far)); }
 void ThreeFX_Fixed::setZFar(const Fix16 &z_far)
 {
     this->z_far = z_far;
-    this->updateLambda();
+    this->updateLambdaScale();
 }
 
 /**
@@ -487,15 +487,15 @@ void ThreeFX_Fixed::setFovAngle(double f)
 /**
  * @brief Sets camera angle
  *
- * @param yaw
- * @param pitch
- * @param roll
+ * @param alpha
+ * @param beta
+ * @param gamma
  */
-void ThreeFX_Fixed::setCameraAngle(const Fix16 &yaw, const Fix16 &pitch, const Fix16 &roll)
+void ThreeFX_Fixed::setCameraAngle(const Fix16 &alpha, const Fix16 &beta, const Fix16 &gamma)
 {
-    this->yaw = yaw;
-    this->pitch = pitch;
-    this->roll = roll;
+    this->alpha = alpha;
+    this->beta = beta;
+    this->gamma = gamma;
 
     this->updateCamTransform();
 }
@@ -529,27 +529,27 @@ Point2d ThreeFX_Fixed::worldToPixel(const Point3d &p)
  */
 Fix16 ThreeFX_Fixed::getCameraYaw()
 {
-    return this->yaw;
+    return this->alpha;
 }
 
 /**
- * @brief Get the Camera pitch object
+ * @brief Get the Camera beta object
  *
  * @return Fix16
  */
 Fix16 ThreeFX_Fixed::getCameraPitch()
 {
-    return this->pitch;
+    return this->beta;
 }
 
 /**
- * @brief Get the Camera roll object
+ * @brief Get the Camera gamma object
  *
  * @return Fix16
  */
 Fix16 ThreeFX_Fixed::getCameraRoll()
 {
-    return this->roll;
+    return this->gamma;
 }
 
 /**
@@ -808,16 +808,20 @@ bool ThreeFX_Fixed::cohenSutherlandClip(Point3d &p0, Point3d &p1, const Point3d 
 }
 
 /**
- * @brief Recalculates lambda value; called on any change to z_near, z_far
+ * @brief Recalculates lambda value and z scale; called on any change to z_near, z_far
  *
  */
-void ThreeFX_Fixed::updateLambda()
+void ThreeFX_Fixed::updateLambdaScale()
 {
     this->lambda = this->z_far / (this->z_far - this->z_near);
+    this->z_scale = (Fix16(1.) / (this->z_far - this->z_near));
 
     char buf[16];
     fix16_to_str(this->lambda.value, buf, 4);
     LOG_DEBUG("update lambda to", buf);
+
+    fix16_to_str(this->z_scale.value, buf, 4);
+    LOG_DEBUG("update z_scale to", buf);
 }
 
 /**
@@ -836,26 +840,35 @@ void ThreeFX_Fixed::updateAspect()
 }
 
 /**
- * @brief Re-calculates camera transform matrix based on stored yaw, pitch, roll
+ * @brief Re-calculates camera transform matrix based on stored alpha, beta, gamma
  * (see https://msl.cs.uiuc.edu/planning/node102.html); matrix stored in [y][x]
  *
  */
 void ThreeFX_Fixed::updateCamTransform()
 {
-    this->cam_mtrx[0][0] = this->yaw.cos() * this->pitch.cos();
-    this->cam_mtrx[0][1] = this->yaw.cos() * this->pitch.sin() * this->roll.sin() - this->yaw.sin() * this->roll.cos();
-    this->cam_mtrx[0][1] = this->yaw.cos() * this->pitch.sin() * this->roll.cos() + this->yaw.sin() * this->roll.sin();
-    this->cam_mtrx[1][0] = this->yaw.sin() * this->pitch.cos();
-    this->cam_mtrx[1][1] = this->yaw.sin() * this->yaw.cos() * this->roll.sin() + this->yaw.cos() * this->roll.cos();
-    this->cam_mtrx[1][2] = this->yaw.sin() * this->pitch.sin() * this->roll.cos() - this->yaw.cos() * this->roll.sin();
-    this->cam_mtrx[2][0] = this->pitch.sin() * -1.;
-    this->cam_mtrx[2][1] = this->pitch.cos() * this->roll.sin();
-    this->cam_mtrx[2][2] = this->pitch.cos() * this->roll.cos();
+    // cos(a) cos(b)
+    this->cam_mtrx[0][0] = this->alpha.cos() * this->beta.cos();
+    // cos(a) sin(b) sin(g) - sin(a) cos(g)
+    this->cam_mtrx[0][1] = (this->alpha.cos() * this->beta.sin() * this->gamma.sin()) - (this->alpha.sin() * this->gamma.cos());
+    // cos(a) sin(b) cos(g) + sin(a) sin(g)
+    this->cam_mtrx[0][2] = (this->alpha.cos() * this->beta.sin() * this->gamma.cos()) + (this->alpha.sin() * this->gamma.sin());
+    // sin(a) cos(b)
+    this->cam_mtrx[1][0] = this->alpha.sin() * this->beta.cos();
+    // sin(a) sin(b) sin(g) + cos(a) cos(g)
+    this->cam_mtrx[1][1] = (this->alpha.sin() * this->beta.cos() * this->gamma.sin()) + (this->alpha.cos() * this->gamma.cos());
+    // sin(a) sin(b) cos(g) - cos(a) sin(g)
+    this->cam_mtrx[1][2] = (this->alpha.sin() * this->beta.sin() * this->gamma.cos()) - (this->alpha.cos() * this->gamma.sin());
+    // -sin(b)
+    this->cam_mtrx[2][0] = this->beta.sin() * -1.;
+    // cos(b) sin(g)
+    this->cam_mtrx[2][1] = this->beta.cos() * this->gamma.sin();
+    // cos(b) cos(g)
+    this->cam_mtrx[2][2] = this->beta.cos() * this->gamma.cos();
 
-    LOG_DEBUG("update camera matrix: ");
-    LOG_DEBUG(this->cam_mtrx[0][0].value, this->cam_mtrx[0][1].value, this->cam_mtrx[0][2].value);
-    LOG_DEBUG(this->cam_mtrx[1][0].value, this->cam_mtrx[1][1].value, this->cam_mtrx[1][2].value);
-    LOG_DEBUG(this->cam_mtrx[2][0].value, this->cam_mtrx[2][1].value, this->cam_mtrx[2][2].value);
+    LOG_TRACE("update camera matrix");
+    LOG_TRACE(this->cam_mtrx[0][0].value, this->cam_mtrx[0][1].value, this->cam_mtrx[0][2].value);
+    LOG_TRACE(this->cam_mtrx[1][0].value, this->cam_mtrx[1][1].value, this->cam_mtrx[1][2].value);
+    LOG_TRACE(this->cam_mtrx[2][0].value, this->cam_mtrx[2][1].value, this->cam_mtrx[2][2].value);
 }
 
 /**
@@ -937,6 +950,10 @@ Point3d ThreeFX_Fixed::worldCamera(const Point3d &p)
     p2.y = p1.x * this->cam_mtrx[0][1] + p1.y * this->cam_mtrx[1][1] + p1.z * this->cam_mtrx[2][1];
     p2.z = p1.x * this->cam_mtrx[0][2] + p1.y * this->cam_mtrx[1][2] + p1.z * this->cam_mtrx[2][2];
 
+    // p1.debugPrint();
+    // p2.debugPrint();
+    // PRINT("\n");
+
     return p2;
 }
 
@@ -953,12 +970,16 @@ Point3d ThreeFX_Fixed::worldToScreen(const Point3d &p)
     p1 = this->worldCamera(p);
 
     // need to do one int divide to get 1 / dz
-    Fix16 inv_z = Fix16(1.) / p.z;
+    Fix16 inv_z = Fix16(1.) / p1.z;
 
     // then everything becomes int multiply
     res.x = this->a * this->fov * p1.x * inv_z;
     res.y = this->fov * p1.y * inv_z;
-    res.z = (p1.z - this->z_near) * this->lambda * inv_z;
+    res.z = (p1.z - this->z_near) * this->lambda * this->z_scale;
+
+    // p1.debugPrint();
+    // res.debugPrint();
+    // PRINT("\n");
 
     return res;
 }
@@ -975,5 +996,10 @@ Point2d ThreeFX_Fixed::screenToPixel(const Point3d &p)
     Point2d res;
     res.x = (p.x + Fix16(1.)) * this->gfx_width * Fix16(1. / 2.);
     res.y = (Fix16(1.) - p.y) * this->gfx_height * Fix16(1. / 2.);
+
+    // p.debugPrint();
+    // res.debugPrint();
+    // PRINT("\n");
+
     return res;
 }

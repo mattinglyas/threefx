@@ -138,20 +138,21 @@ private:
         a,
         z_near,
         z_far,
+        z_scale,
         fov,
         lambda,
         gfx_width,
         gfx_height,
         // https://msl.cs.uiuc.edu/planning/node102.html
-        yaw,   // alpha
-        pitch, // beta
-        roll;  // gamma
+        alpha,   // alpha
+        beta, // beta
+        gamma;  // gamma
     Point3d
         cam_origin;
 
     Fix16 cam_mtrx[3][3];
 
-    void updateLambda();
+    void updateLambdaScale();
     void updateAspect();
     void updateCamTransform();
     unsigned char cohenSutherlandCode(const Point2d &, const Point2d &, const Point2d &);
