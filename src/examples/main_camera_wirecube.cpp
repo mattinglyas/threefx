@@ -1,18 +1,19 @@
 #include <Arduino.h>
 #include <DebugLog.h>
 #include <Arduino_GFX_Library.h>
-#include "3fx_fixed.hpp"
+#include "ThreeFX.hpp"
 
-#define TFT_CS 5    // GPIO5
-#define TFT_RESET 3 // GPIO3
-#define TFT_DC 4    // GPIO4
-#define TFT_MOSI 10 // GPIO10/MOSI
-#define TFT_SCK 8   // GPIO8/SCK
-#define TFT_LED 2   // GPIO2
+#define TFT_CS 8    // GPIO5
+#define TFT_RESET 17 // GPIO3
+#define TFT_DC 9    // GPIO4
+#define TFT_MOSI 35 // GPIO10/MOSI
+#define TFT_SCK 36   // GPIO8/SCK
+#define TFT_LED 18   // GPIO2
 #define TFT_MISO -1 // not used for TFT
 
 #define GFX_BL TFT_LED // backlight pin
-#define DRAW_REFRESH_MS 75
+#define DRAW_REFRESH_MS 100
+#define COLOR RED
 
 // camera parameters
 #define Z_NEAR (Fix16(1.))
@@ -26,29 +27,32 @@
 // ThreeFX_Fixed object
 Arduino_DataBus *bus; 
 Arduino_GFX *gfx;
+Arduino_GFX *output_display;
+
 ThreeFX_Fixed *tfx;
 
 Line3d cube[12] = 
 {
-    Line3d(Point3d(-0.5, -0.5, -0.5), Point3d(-0.5, -0.5, 0.5)),
-    Line3d(Point3d(-0.5, -0.5, -0.5), Point3d(-0.5, 0.5, -0.5)),
-    Line3d(Point3d(-0.5, -0.5, -0.5), Point3d(0.5, -0.5, -0.5)),
-    Line3d(Point3d(0.5, -0.5, 0.5), Point3d(0.5, -0.5, -0.5)),
-    Line3d(Point3d(0.5, -0.5, 0.5), Point3d(0.5, 0.5, 0.5)),
-    Line3d(Point3d(0.5, -0.5, 0.5), Point3d(-0.5, -0.5, 0.5)),
-    Line3d(Point3d(-0.5, 0.5, 0.5), Point3d(-0.5, 0.5, -0.5)),
-    Line3d(Point3d(-0.5, 0.5, 0.5), Point3d(-0.5, -0.5, 0.5)),
-    Line3d(Point3d(-0.5, 0.5, 0.5), Point3d(0.5, 0.5, 0.5)),
-    Line3d(Point3d(0.5, 0.5, -0.5), Point3d(0.5, 0.5, 0.5)),
-    Line3d(Point3d(0.5, 0.5, -0.5), Point3d(0.5, -0.5, -0.5)),
-    Line3d(Point3d(0.5, 0.5, -0.5), Point3d(-0.5, 0.5, -0.5)),
+    Line3d(Coord3d(-0.5, -0.5, -0.5), Coord3d(-0.5, -0.5, 0.5), COLOR),
+    Line3d(Coord3d(-0.5, -0.5, -0.5), Coord3d(-0.5, 0.5, -0.5), COLOR),
+    Line3d(Coord3d(-0.5, -0.5, -0.5), Coord3d(0.5, -0.5, -0.5), COLOR),
+    Line3d(Coord3d(0.5, -0.5, 0.5), Coord3d(0.5, -0.5, -0.5), COLOR),
+    Line3d(Coord3d(0.5, -0.5, 0.5), Coord3d(0.5, 0.5, 0.5), COLOR),
+    Line3d(Coord3d(0.5, -0.5, 0.5), Coord3d(-0.5, -0.5, 0.5), COLOR),
+    Line3d(Coord3d(-0.5, 0.5, 0.5), Coord3d(-0.5, 0.5, -0.5), COLOR),
+    Line3d(Coord3d(-0.5, 0.5, 0.5), Coord3d(-0.5, -0.5, 0.5), COLOR),
+    Line3d(Coord3d(-0.5, 0.5, 0.5), Coord3d(0.5, 0.5, 0.5), COLOR),
+    Line3d(Coord3d(0.5, 0.5, -0.5), Coord3d(0.5, 0.5, 0.5), COLOR),
+    Line3d(Coord3d(0.5, 0.5, -0.5), Coord3d(0.5, -0.5, -0.5), COLOR),
+    Line3d(Coord3d(0.5, 0.5, -0.5), Coord3d(-0.5, 0.5, -0.5), COLOR),
 };
 
-void drawCube(uint16_t color)
+void drawCube(const uint16_t color)
 {
     for (int i = 0; i < 12; i++)
     {
-        tfx->drawLine3d(cube[i], color);
+        cube[i].color = color;
+        tfx->drawWorldLine3d(cube[i]);
     }
 }
 
@@ -73,7 +77,7 @@ void setup()
 
     LOG_INFO("Init ThreeFX_Fixed...");
     tfx = new ThreeFX_Fixed(gfx, FOV_RAD, Z_NEAR, Z_FAR);
-    tfx->setCameraOrigin(Point3d(0., CAM_HEIGHT, CAM_DIST));
+    tfx->setCameraOrigin(Coord3d(0., CAM_HEIGHT, CAM_DIST));
     LOG_INFO("done");
 }
 
@@ -85,15 +89,12 @@ void loop()
     int16_t angle = 0;
 
     x_last_wake_time = xTaskGetTickCount();
-    drawCube(RED);
+    drawCube(COLOR);
 
     for (;;)
     {
-        // wait for next frame
-        vTaskDelayUntil(&x_last_wake_time, x_period);
-
         Fix16 rads = Fix16(angle) * Fix16(2. * PI * 1. / 360);
-        Point3d cam;
+        Coord3d cam;
         cam.x = rads.sin() * CAM_DIST;
         cam.y = CAM_HEIGHT;
         cam.z = rads.cos() * CAM_DIST;
@@ -101,8 +102,11 @@ void loop()
         drawCube(BLACK);
         tfx->setCameraOrigin(cam);
         tfx->setCameraAngle(0., rads, 0.);
-        drawCube(RED);
+        drawCube(COLOR);
 
         angle = (angle + 1) % 360;
+        
+        // wait for next frame
+        vTaskDelayUntil(&x_last_wake_time, x_period);
     }
 }

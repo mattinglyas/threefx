@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <DebugLog.h>
 #include <Arduino_GFX_Library.h>
-#include "3fx_fixed.hpp"
+#include "ThreeFX.hpp"
 
 #define TFT_CS 5    // GPIO5
 #define TFT_RESET 3 // GPIO3
@@ -114,7 +114,7 @@ void drawZPlaneVert(int16_t color)
 {
     for (int i = 0; i < NUM_Z_PLANE_VERT; i++)
     {
-        tfx->drawLine3d(z_grid_vert[i], color);
+        tfx->drawWorldLine3d(z_grid_vert[i], color);
     }
 }
 
@@ -122,7 +122,7 @@ void drawZPlaneHoriz(int16_t color)
 {
     for (int i = 0; i < NUM_Z_PLANE_HORIZ; i++)
     {
-        tfx->drawLine3d(z_grid_horiz[i], color);
+        tfx->drawWorldLine3d(z_grid_horiz[i], color);
     }
 }
 
@@ -149,7 +149,7 @@ void setup()
     vTaskDelay(1000);
     tfx = new ThreeFX_Fixed(gfx, FOV_RAD, Z_NEAR, Z_FAR);
     tfx->setCameraAngle(Fix16(0.), Fix16(0.), Fix16(0.));
-    tfx->setCameraOrigin(Point3d(0., 2., 0.));
+    tfx->setCameraOrigin(Coord3d(0., 2., 0.));
     LOG_INFO("done");
 }
 
